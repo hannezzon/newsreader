@@ -11,7 +11,7 @@ CommandHandler::CommandHandler() {
 
 void CommandHandler::initializeHandlers() {
     // Register command handlers
-    commandHandlers["example"] = [this](const std::vector<std::string>& args) -> bool {
+    commandHandlers["example"] = [this](const std::vector<std::string>& /* args */) -> bool {
         std::cout << "Executing example command" << std::endl;
         // Implement example command logic here
         return true;
@@ -45,7 +45,7 @@ void CommandHandler::initializeHandlers() {
         std::cout << "Fetching latest news from New York Times..." << std::endl;
 
         // Fetch news
-        auto newsItems = feed.fetchAPNews(count);
+        auto newsItems = feed.fetchNews(count);
 
         // Clear progress line
         std::cout << std::string(40, ' ') << "\r" << std::flush;

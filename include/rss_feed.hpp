@@ -35,13 +35,6 @@ public:
     std::vector<NewsItem> fetchNews(int count = 10);
 
     /**
-     * @brief Fetch the latest news from the AP RSS feed (legacy method name)
-     * @param count The maximum number of news items to fetch
-     * @return A vector of NewsItem objects
-     */
-    std::vector<NewsItem> fetchAPNews(int count = 10) { return fetchNews(count); }
-
-    /**
      * @brief Set a callback function to be called during the fetch operation
      * @param callback The callback function
      */

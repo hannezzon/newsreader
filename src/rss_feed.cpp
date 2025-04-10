@@ -44,43 +44,43 @@ std::vector<NewsItem> RSSFeed::fetchNews(int count) {
             data = R"(
             <rss version="2.0">
             <channel>
-                <title>AP Top News</title>
-                <link>https://apnews.com</link>
-                <description>The latest headlines from the Associated Press</description>
+                <title>NYT > World News</title>
+                <link>https://www.nytimes.com/section/world</link>
+                <description>The latest news from around the world from the New York Times</description>
                 <item>
                     <title>Sample News Item 1</title>
-                    <link>https://apnews.com/article/sample1</link>
+                    <link>https://www.nytimes.com/article/sample1</link>
                     <description>This is a sample news item for demonstration purposes.</description>
                     <pubDate>Mon, 10 Apr 2023 12:00:00 GMT</pubDate>
-                    <guid>https://apnews.com/article/sample1</guid>
+                    <guid>https://www.nytimes.com/article/sample1</guid>
                 </item>
                 <item>
                     <title>Sample News Item 2</title>
-                    <link>https://apnews.com/article/sample2</link>
+                    <link>https://www.nytimes.com/article/sample2</link>
                     <description>Another sample news item with some content.</description>
                     <pubDate>Mon, 10 Apr 2023 11:30:00 GMT</pubDate>
-                    <guid>https://apnews.com/article/sample2</guid>
+                    <guid>https://www.nytimes.com/article/sample2</guid>
                 </item>
                 <item>
                     <title>Sample News Item 3</title>
-                    <link>https://apnews.com/article/sample3</link>
+                    <link>https://www.nytimes.com/article/sample3</link>
                     <description>A third sample news item with different content.</description>
                     <pubDate>Mon, 10 Apr 2023 11:00:00 GMT</pubDate>
-                    <guid>https://apnews.com/article/sample3</guid>
+                    <guid>https://www.nytimes.com/article/sample3</guid>
                 </item>
                 <item>
                     <title>Sample News Item 4</title>
-                    <link>https://apnews.com/article/sample4</link>
+                    <link>https://www.nytimes.com/article/sample4</link>
                     <description>A fourth sample news item for testing.</description>
                     <pubDate>Mon, 10 Apr 2023 10:30:00 GMT</pubDate>
-                    <guid>https://apnews.com/article/sample4</guid>
+                    <guid>https://www.nytimes.com/article/sample4</guid>
                 </item>
                 <item>
                     <title>Sample News Item 5</title>
-                    <link>https://apnews.com/article/sample5</link>
+                    <link>https://www.nytimes.com/article/sample5</link>
                     <description>A fifth sample news item to complete the set.</description>
                     <pubDate>Mon, 10 Apr 2023 10:00:00 GMT</pubDate>
-                    <guid>https://apnews.com/article/sample5</guid>
+                    <guid>https://www.nytimes.com/article/sample5</guid>
                 </item>
             </channel>
             </rss>
@@ -104,11 +104,8 @@ std::string RSSFeed::getLastError() const {
 }
 
 std::string RSSFeed::fetchURL(const std::string& url) {
-    std::cout << "Fetching URL: " << url << std::endl;
-
     if (!curlHandle) {
         lastError = "libcurl not initialized";
-        std::cerr << "Error: " << lastError << std::endl;
         return "";
     }
 
@@ -122,9 +119,9 @@ std::string RSSFeed::fetchURL(const std::string& url) {
     curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
     curl_easy_setopt(curl, CURLOPT_TIMEOUT, 30L);
 
-    // Disable SSL verification for testing purposes
-    curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0L);
-    curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 0L);
+    // Enable SSL verification for security
+    curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 1L);
+    curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 2L);
 
     // Perform the request
     CURLcode res = curl_easy_perform(curl);
@@ -133,11 +130,24 @@ std::string RSSFeed::fetchURL(const std::string& url) {
     if (res != CURLE_OK) {
         lastError = std::string("curl_easy_perform() failed: ") +
                    curl_easy_strerror(res);
-        std::cerr << "Error fetching URL: " << lastError << std::endl;
         return "";
     }
 
     return readBuffer;
+}
+
+/**
+ * @brief Extract a field from an item using regex
+ * @param content The item content
+ * @param regex The regex to use for extraction
+ * @return The extracted field or empty string if not found
+ */
+static std::string extractField(const std::string& content, const std::regex& regex) {
+    std::smatch match;
+    if (std::regex_search(content, match, regex) && match.size() > 1) {
+        return match.str(1);
+    }
+    return "";
 }
 
 std::vector<NewsItem> RSSFeed::parseRSS(const std::string& data, int count) {
@@ -146,15 +156,15 @@ std::vector<NewsItem> RSSFeed::parseRSS(const std::string& data, int count) {
     // Simple regex-based parsing for demonstration purposes
     // In a real application, you would use a proper XML parser like libxml2
 
-    // Find all item elements
-    // Use a simple string search approach instead of regex for multiline matching
-    std::string itemStart = "<item>";
-    std::string itemEnd = "</item>";
-    std::regex titleRegex("<title>(.*?)</title>");
-    std::regex linkRegex("<link>(.*?)</link>");
-    std::regex descRegex("<description>(.*?)</description>");
-    std::regex dateRegex("<pubDate>(.*?)</pubDate>");
-    std::regex guidRegex("<guid>(.*?)</guid>");
+    // Define constants for item tags and regexes
+    const std::string itemStart = "<item>";
+    const std::string itemEnd = "</item>";
+    const std::regex titleRegex("<title>(.*?)</title>");
+    const std::regex linkRegex("<link>(.*?)</link>");
+    const std::regex descRegex("<description>(.*?)</description>");
+    const std::regex dateRegex("<pubDate>(.*?)</pubDate>");
+    const std::regex guidRegex("<guid>(.*?)</guid>");
+    const std::regex htmlTagRegex("<[^>]*>");
 
     int itemCount = 0;
     size_t pos = 0;
@@ -178,41 +188,21 @@ std::vector<NewsItem> RSSFeed::parseRSS(const std::string& data, int count) {
         // Update position for next search
         pos = itemEndPos + itemEnd.length();
 
+        // Create a news item and extract fields
         NewsItem item;
+        item.title = extractField(itemContent, titleRegex);
+        item.link = extractField(itemContent, linkRegex);
+        item.pubDate = extractField(itemContent, dateRegex);
+        item.guid = extractField(itemContent, guidRegex);
 
-        // Extract title
-        std::smatch titleMatch;
-        if (std::regex_search(itemContent, titleMatch, titleRegex) && titleMatch.size() > 1) {
-            item.title = titleMatch.str(1);
-        }
-
-        // Extract link
-        std::smatch linkMatch;
-        if (std::regex_search(itemContent, linkMatch, linkRegex) && linkMatch.size() > 1) {
-            item.link = linkMatch.str(1);
-        }
-
-        // Extract description
-        std::smatch descMatch;
-        if (std::regex_search(itemContent, descMatch, descRegex) && descMatch.size() > 1) {
-            item.description = descMatch.str(1);
-
+        // Extract and clean description
+        item.description = extractField(itemContent, descRegex);
+        if (!item.description.empty()) {
             // Clean up HTML tags from description
-            item.description = std::regex_replace(item.description, std::regex("<[^>]*>"), "");
+            item.description = std::regex_replace(item.description, htmlTagRegex, "");
         }
 
-        // Extract publication date
-        std::smatch dateMatch;
-        if (std::regex_search(itemContent, dateMatch, dateRegex) && dateMatch.size() > 1) {
-            item.pubDate = dateMatch.str(1);
-        }
-
-        // Extract GUID
-        std::smatch guidMatch;
-        if (std::regex_search(itemContent, guidMatch, guidRegex) && guidMatch.size() > 1) {
-            item.guid = guidMatch.str(1);
-        }
-
+        // Add the item to the list
         items.push_back(item);
         itemCount++;
 

@@ -26,8 +26,7 @@ int main(int argc, char* argv[]) {
         args.push_back(argv[i]);
     }
 
-    // Create CLI parser and command handler
-    CLIParser parser;
+    // Create command handler
     CommandHandler handler;
 
     // If no arguments provided, show usage
